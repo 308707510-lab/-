@@ -159,10 +159,11 @@ function getMockAnalysis(): {
 export async function analyzeGoBoard(imageBase64: string): Promise<{
   steps: StepAnalysis[];
   overallAnalysis: string;
+  usingMockData: boolean;
 }> {
   if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
     console.log('使用模拟数据（未配置 API Key）');
-    return getMockAnalysis();
+    return { ...getMockAnalysis(), usingMockData: true };
   }
 
   let lastError: Error | null = null;
@@ -172,7 +173,7 @@ export async function analyzeGoBoard(imageBase64: string): Promise<{
       console.log(`尝试连接 Google API (${attempt}/2)...`);
       const result = await analyzeWithGemini(imageBase64);
       console.log('AI分析成功');
-      return result;
+      return { ...result, usingMockData: false };
     } catch (error) {
       lastError = error as Error;
       console.warn(`第 ${attempt} 次尝试失败:`, lastError.message);
@@ -184,5 +185,5 @@ export async function analyzeGoBoard(imageBase64: string): Promise<{
   }
 
   console.log('Google API 连接失败，使用模拟数据');
-  return getMockAnalysis();
+  return { ...getMockAnalysis(), usingMockData: true };
 }

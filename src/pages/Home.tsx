@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import ImageUploader from '../components/ImageUploader';
 import AnalysisResults from '../components/AnalysisResults';
-import { AnalyzeResponse, StepAnalysis } from '../../shared/types';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { AnalyzeResponse } from '../../shared/types';
+import { Sparkles, Loader2, Info } from 'lucide-react';
 
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [usingMockData, setUsingMockData] = useState(false);
 
   const handleAnalyze = async () => {
     if (!selectedImage) return;
@@ -16,6 +17,7 @@ export default function Home() {
     setIsAnalyzing(true);
     setError(null);
     setAnalysisResult(null);
+    setUsingMockData(false);
 
     try {
       const response = await fetch('/api/analyze', {
@@ -30,6 +32,7 @@ export default function Home() {
 
       if (data.success) {
         setAnalysisResult(data);
+        setUsingMockData(data.usingMockData || false);
       } else {
         setError(data.error || '分析失败');
       }
@@ -62,6 +65,7 @@ export default function Home() {
                   setSelectedImage(null);
                   setAnalysisResult(null);
                   setError(null);
+                  setUsingMockData(false);
                 }}
               />
             </div>
@@ -92,6 +96,20 @@ export default function Home() {
                 )}
               </button>
             </div>
+
+            {usingMockData && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800">
+                <div className="flex items-start gap-2">
+                  <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">当前使用演示数据</p>
+                    <p className="text-sm mt-1">
+                      由于网络环境问题，无法连接 Google AI。当前显示的是示例分析结果。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">

@@ -14,4 +14,5 @@ export interface AnalyzeResponse {
   steps: StepAnalysis[];
   overallAnalysis: string;
   error?: string;
+  usingMockData?: boolean;
 }

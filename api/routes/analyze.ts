@@ -18,22 +18,13 @@ router.post('/', async (req: Request, res: Response) => {
       return res.json(response);
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      const response: AnalyzeResponse = {
-        success: false,
-        steps: [],
-        overallAnalysis: '',
-        error: '未配置 AI API Key。请在 .env 文件中设置 GEMINI_API_KEY'
-      };
-      return res.status(500).json(response);
-    }
-
     const analysis = await analyzeGoBoard(image);
 
     const response: AnalyzeResponse = {
       success: true,
       steps: analysis.steps,
-      overallAnalysis: analysis.overallAnalysis
+      overallAnalysis: analysis.overallAnalysis,
+      usingMockData: analysis.usingMockData
     };
 
     res.json(response);
