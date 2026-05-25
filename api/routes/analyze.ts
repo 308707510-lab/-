@@ -1,0 +1,125 @@
+import { Router, Request, Response } from 'express';
+import { AnalyzeResponse, StepAnalysis } from '../../shared/types';
+
+const router = Router();
+
+// 模拟分析数据
+const mockAnalyses = [
+  {
+    steps: [
+      {
+        step: 1,
+        position: '右上角星位附近',
+        reason: '这步棋占据了要点，既确保了角部实地，又为后续的扩张打下了基础。在当前局面下，角部是最有价值的区域。',
+        expectation: '期望能够稳定角地，并为右边和上边的发展创造条件。'
+      },
+      {
+        step: 2,
+        position: '左边中腹',
+        reason: '这步棋瞄住了黑棋的弱点，同时扩张了白棋的势力范围。通过威胁黑棋的联络，迫使黑棋应对。',
+        expectation: '期望能够先手利用，或在中腹形成厚势，为后续战斗做准备。'
+      },
+      {
+        step: 3,
+        position: '下边星位',
+        reason: '这步棋是大场，既扩大了自己的地盘，又限制了对方的发展。此时下边的价值最大。',
+        expectation: '期望能够确立下边的实空，同时保持对中央的影响力。'
+      },
+      {
+        step: 4,
+        position: '中腹要点',
+        reason: '这步棋是双方消长的要点，占据此处可以同时威胁对方和扩张自己。是当前局面下的急所。',
+        expectation: '期望能够在中腹取得主动权，引导后续的战斗方向。'
+      },
+      {
+        step: 5,
+        position: '右下角小飞',
+        reason: '这步棋安定了右下角，同时瞄着后续的侵入手段。在实空对比的关键时刻，确保实地很重要。',
+        expectation: '期望能够完全守住右下角，不给对方留下可乘之机。'
+      }
+    ],
+    overallAnalysis: '从全局来看，当前局面黑棋实空略优，但白棋在中腹有发展潜力。绝艺推荐的这几步棋思路清晰，先占据要点确保实地，再争抢中腹主动权，最后安定自己的弱棋。整体策略是先巩固后发展，符合围棋的基本原理。建议后续行棋要注意厚薄的平衡，不要过度贪功冒进，保持局面的主动性。'
+  },
+  {
+    steps: [
+      {
+        step: 1,
+        position: '三三位置',
+        reason: '三三是当前局面下的最佳选点，可以彻底安定角部，同时避免复杂的定式变化。在这个局势下，简明最为重要。',
+        expectation: '期望能够快速安定这块棋，为其他战场的战斗积蓄力量。'
+      },
+      {
+        step: 2,
+        position: '拆边',
+        reason: '这步棋既扩大了自己的阵营，又限制了对方的发展空间，是攻守兼备的好手。',
+        expectation: '期望能够形成两翼张开的理想棋形，保持局面的领先优势。'
+      },
+      {
+        step: 3,
+        position: '中央跳',
+        reason: '这步棋出头顺畅，同时对对方形成压迫，是关系到双方厚薄的要点。',
+        expectation: '期望能够在中央形成厚势，为后续的攻击创造条件。'
+      },
+      {
+        step: 4,
+        position: '碰',
+        reason: '这是试应手的好手，通过试探对方的应手来决定自己的后续策略，体现了围棋的灵活性。',
+        expectation: '期望能够根据对方的应对，找到最佳的后续手段。'
+      },
+      {
+        step: 5,
+        position: '退',
+        reason: '这步棋看似普通，实则是坚实的选择，既确保了自身的连接，又为后续留下了变化空间。',
+        expectation: '期望能够稳住局面，等待对方露出破绽再发动攻击。'
+      },
+      {
+        step: 6,
+        position: '尖顶',
+        reason: '这是紧凑的一手，通过压缩对方的空间来获取利益，同时强化自己的棋形。',
+        expectation: '期望能够在局部获得便宜，逐步扩大优势。'
+      }
+    ],
+    overallAnalysis: '纵观全局，目前局面形势微妙，双方势均力敌。绝艺推荐的这几手棋体现了深厚的功力：先在三三扎根确保根基，然后通过拆边和跳来扩张势力，最后在局部通过细腻的手段获取利益。整体策略是先稳固后进取，张弛有度。建议在后续行棋中保持这一思路，不要急于求成，通过小优势的积累逐步走向胜利。'
+  }
+];
+
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const { image } = req.body;
+
+    if (!image) {
+      const response: AnalyzeResponse = {
+        success: false,
+        steps: [],
+        overallAnalysis: '',
+        error: '未上传图片'
+      };
+      return res.json(response);
+    }
+
+    // 模拟处理延迟
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // 随机选择一个模拟分析结果
+    const mockData = mockAnalyses[Math.floor(Math.random() * mockAnalyses.length)];
+
+    const response: AnalyzeResponse = {
+      success: true,
+      steps: mockData.steps,
+      overallAnalysis: mockData.overallAnalysis
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('分析出错:', error);
+    const response: AnalyzeResponse = {
+      success: false,
+      steps: [],
+      overallAnalysis: '',
+      error: '服务器内部错误'
+    };
+    res.status(500).json(response);
+  }
+});
+
+export default router;
