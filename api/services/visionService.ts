@@ -1,9 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { StepAnalysis } from '../../shared/types';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-const GEMINI_MODEL_NAME = 'gemini-1.5-flash';
 
 const mockAnalyses = [
   {
@@ -84,11 +79,29 @@ const mockAnalyses = [
   }
 ];
 
-async function analyzeWithGemini(imageBase64: string): Promise<{
+function getMockAnalysis(): {
   steps: StepAnalysis[];
   overallAnalysis: string;
+  usingMockData: boolean;
+} {
+  const randomIndex = Math.floor(Math.random() * mockAnalyses.length);
+  return { 
+    ...mockAnalyses[randomIndex], 
+    usingMockData: true 
+  };
+}
+
+async function analyzeWithQwen(imageBase64: string): Promise<{
+  steps: StepAnalysis[];
+  overallAnalysis: string;
+  usingMockData: boolean;
 }> {
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
+  const apiKey = process.env.QWEN_API_KEY;
+  
+  if (!apiKey) {
+    console.log('未配置通义千问 API Key，使用模拟数据');
+    return getMockAnalysis();
+  }
 
   const prompt = `你是一个专业的围棋解说师。请分析这张绝艺AI推荐的围棋截图。
 
@@ -120,40 +133,59 @@ async function analyzeWithGemini(imageBase64: string): Promise<{
 - overallAnalysis要对后续行棋方向提供建议
 - 只返回JSON，不要有其他文字`;
 
-  const imageData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-  
-  const result = await model.generateContent([
-    prompt,
-    {
-      inlineData: {
-        mimeType: 'image/png',
-        data: imageData,
+  try {
+    const imageData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    
+    const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
-    },
-  ]);
+      body: JSON.stringify({
+        model: 'qwen-vl-max',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${imageData}`
+                }
+              }
+            ]
+          }
+        ]
+      })
+    });
 
-  const response = await result.response;
-  const text = response.text();
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('通义千问API错误:', response.status, errorText);
+      throw new Error(`API请求失败: ${response.status}`);
+    }
 
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('无法解析AI返回的结果');
+    const data = await response.json();
+    const text = data.choices[0].message.content;
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('无法解析AI返回的结果');
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]);
+
+    return {
+      steps: analysis.steps || [],
+      overallAnalysis: analysis.overallAnalysis || '暂无全局分析',
+      usingMockData: false
+    };
+  } catch (error) {
+    console.error('通义千问分析失败:', error);
+    return getMockAnalysis();
   }
-
-  const analysis = JSON.parse(jsonMatch[0]);
-
-  return {
-    steps: analysis.steps || [],
-    overallAnalysis: analysis.overallAnalysis || '暂无全局分析',
-  };
-}
-
-function getMockAnalysis(): {
-  steps: StepAnalysis[];
-  overallAnalysis: string;
-} {
-  const randomIndex = Math.floor(Math.random() * mockAnalyses.length);
-  return mockAnalyses[randomIndex];
 }
 
 export async function analyzeGoBoard(imageBase64: string): Promise<{
@@ -161,29 +193,86 @@ export async function analyzeGoBoard(imageBase64: string): Promise<{
   overallAnalysis: string;
   usingMockData: boolean;
 }> {
-  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
-    console.log('使用模拟数据（未配置 API Key）');
-    return { ...getMockAnalysis(), usingMockData: true };
+  const qwenApiKey = process.env.QWEN_API_KEY;
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+
+  if (qwenApiKey && qwenApiKey !== 'your_qwen_api_key_here') {
+    console.log('使用通义千问API');
+    return await analyzeWithQwen(imageBase64);
   }
 
-  let lastError: Error | null = null;
-  
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      console.log(`尝试连接 Google API (${attempt}/2)...`);
-      const result = await analyzeWithGemini(imageBase64);
-      console.log('AI分析成功');
-      return { ...result, usingMockData: false };
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`第 ${attempt} 次尝试失败:`, lastError.message);
-      
-      if (attempt === 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+  if (geminiApiKey && geminiApiKey !== 'your_gemini_api_key_here') {
+    console.log('尝试使用 Gemini API');
+    return await (async () => {
+      try {
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        const prompt = `你是一个专业的围棋解说师。请分析这张绝艺AI推荐的围棋截图。
+
+请完成以下任务：
+1. 识别图中所有带有序号的棋子（通常是1-10步的推荐）
+2. 对每一步棋进行详细分析，包括：
+   - 这步棋的位置（使用围棋术语，如"右上角星位"、"天元"等）
+   - 为什么这样下（棋理分析）
+   - 期望达成的效果（战略意图）
+3. 对整个棋局的局势进行总体分析
+
+请按以下JSON格式返回结果：
+{
+  "steps": [
+    {
+      "step": 1,
+      "position": "位置描述",
+      "reason": "为什么这样下",
+      "expectation": "期望达成的效果"
     }
+  ],
+  "overallAnalysis": "全局局势分析和建议"
+}
+
+重要：
+- steps数组应该按照序号从小到大排列
+- position应该使用围棋术语，准确描述棋子的位置
+- reason要深入分析棋理，结合具体局面
+- overallAnalysis要对后续行棋方向提供建议
+- 只返回JSON，不要有其他文字`;
+
+        const imageData = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        
+        const result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              mimeType: 'image/png',
+              data: imageData,
+            },
+          },
+        ]);
+
+        const response = await result.response;
+        const text = response.text();
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('无法解析AI返回的结果');
+        }
+
+        const analysis = JSON.parse(jsonMatch[0]);
+
+        return {
+          steps: analysis.steps || [],
+          overallAnalysis: analysis.overallAnalysis || '暂无全局分析',
+          usingMockData: false
+        };
+      } catch (error) {
+        console.error('Gemini分析失败:', error);
+        return getMockAnalysis();
+      }
+    })();
   }
 
-  console.log('Google API 连接失败，使用模拟数据');
-  return { ...getMockAnalysis(), usingMockData: true };
+  console.log('未配置任何AI API Key，使用模拟数据');
+  return getMockAnalysis();
 }

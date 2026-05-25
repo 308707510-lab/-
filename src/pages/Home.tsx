@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ImageUploader from '../components/ImageUploader';
 import AnalysisResults from '../components/AnalysisResults';
 import { AnalyzeResponse } from '../../shared/types';
-import { Sparkles, Loader2, Info } from 'lucide-react';
+import { Sparkles, Loader2, Info, ExternalLink } from 'lucide-react';
 
 export default function Home() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -53,6 +53,24 @@ export default function Home() {
           <p className="text-stone text-lg max-w-2xl mx-auto">
             上传绝艺推荐截图，AI 智能分析每步棋的意图与策略
           </p>
+          
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4 text-blue-800 max-w-2xl mx-auto text-left">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
+              <div>
+                <p className="font-semibold mb-1">💡 使用真实AI功能说明</p>
+                <p className="text-sm text-blue-700">
+                  当前使用演示数据。如需真正识别绝艺推荐，请配置 API Key：
+                </p>
+                <ol className="list-decimal list-inside mt-2 text-sm text-blue-700">
+                  <li>访问 <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline flex items-center gap-1 inline-flex">阿里云百炼 <ExternalLink className="w-3 h-3" /></a></li>
+                  <li>注册/登录并创建 API Key</li>
+                  <li>在项目根目录 <code className="bg-blue-100 px-1 rounded">.env</code> 文件中配置 <code className="bg-blue-100 px-1 rounded">QWEN_API_KEY</code></li>
+                  <li>重启服务即可使用真实AI识别</li>
+                </ol>
+              </div>
+            </div>
+          </div>
         </header>
 
         <div className="grid lg:grid-cols-2 gap-8">
