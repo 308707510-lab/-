@@ -101,22 +101,12 @@ export default function Home() {
           </div>
 
           <div className="lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto lg:pr-2 scrollbar-hide">
-            {analysisResult && analysisResult.success ? (
+            {analysisResult && analysisResult.success && (
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-stone/10">
                 <AnalysisResults
                   steps={analysisResult.steps}
                   overallAnalysis={analysisResult.overallAnalysis}
                 />
-              </div>
-            ) : (
-              <div className="bg-white/50 rounded-2xl p-10 border-2 border-dashed border-stone/20 h-full flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 rounded-full bg-wood-dark/5 flex items-center justify-center mb-4">
-                  <Sparkles className="w-10 h-10 text-wood-dark/30" />
-                </div>
-                <p className="text-stone text-lg">
-                  上传图片并点击解读按钮<br />
-                  查看绝艺推荐的详细分析
-                </p>
               </div>
             )}
           </div>
